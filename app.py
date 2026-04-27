@@ -26,11 +26,11 @@ try:
     st.sidebar.title("⚙️ Control Panel")
     st.sidebar.info("Adjust settings to update graphs and predictions.")
     
-    # 1. FIXED: Capture the date range properly
+    # Capture the date range
     date_selection = st.sidebar.date_input("Filter Data Range", [df['Date'].min(), df['Date'].max()])
     prediction_days = st.sidebar.slider("Days to Predict Future", 7, 90, 30)
 
-    # 2. FIXED: Apply the filtering logic so 'filtered_df' is used
+    # Apply the filtering logic
     if isinstance(date_selection, list) and len(date_selection) == 2:
         start_date, end_date = date_selection
         filtered_df = df[(df['Date'].dt.date >= start_date) & (df['Date'].dt.date <= end_date)].copy()
@@ -41,7 +41,7 @@ try:
     st.title("💹 USD to PKR Computational Finance Project")
     st.divider()
 
-    # Metrics (Using filtered_df)
+    # Metrics
     last_price = filtered_df['Price'].iloc[-1] if not filtered_df.empty else 0
     avg_price = filtered_df['Price'].mean() if not filtered_df.empty else 0
     
@@ -63,18 +63,32 @@ try:
 
     with tab1:
         st.subheader("1. Price Trend & Moving Average (50-Day)")
-        # Using filtered_df instead of df
         filtered_df['MA50'] = filtered_df['Price'].rolling(window=50).mean()
+        
         fig1 = go.Figure()
-        fig1.add_trace(go.Scatter(x=filtered_df['Date'], y=filtered_df['Price'], name="Market Price"))
-        fig1.add_trace(go.Scatter(x=filtered_df['Date'], y=filtered_df['MA50'], name="50-Day Indicator", line=dict(dash='dash')))
+        
+        # FIXED: Blue color for Market Price
+        fig1.add_trace(go.Scatter(
+            x=filtered_df['Date'], 
+            y=filtered_df['Price'], 
+            name="Market Price",
+            line=dict(color='#1f77b4') 
+        ))
+        
+        # FIXED: Orange color and Dash style for Moving Average
+        fig1.add_trace(go.Scatter(
+            x=filtered_df['Date'], 
+            y=filtered_df['MA50'], 
+            name="50-Day Indicator", 
+            line=dict(color='#ff7f0e', dash='dash')
+        ))
+        
         st.plotly_chart(fig1, use_container_width=True)
 
         col_a, col_b = st.columns(2)
         
         with col_a:
             st.subheader("2. Market Volatility (Risk)")
-            # FIXED: Calculating Volatility using filtered_df
             vol_data = filtered_df['Price'].pct_change().rolling(window=21).std() * 100
             fig2 = go.Figure()
             fig2.add_trace(go.Scatter(x=filtered_df['Date'], y=vol_data, name="Volatility", fill='tozeroy', line=dict(color='purple')))
@@ -84,7 +98,6 @@ try:
         with col_b:
             st.subheader("3. Price Frequency (Histogram)")
             fig3 = go.Figure()
-            # FIXED: Histogram using filtered_df
             fig3.add_trace(go.Histogram(x=filtered_df['Price'], nbinsx=40, marker_color='#2ca02c', opacity=0.7))
             fig3.update_layout(height=350)
             st.plotly_chart(fig3, use_container_width=True)
@@ -107,12 +120,11 @@ try:
         future_dates = [df['Date'].iloc[-1] + timedelta(days=i) for i in range(1, prediction_days + 1)]
         
         fig_pred = go.Figure()
-        # Showing filtered history on the prediction graph
         fig_pred.add_trace(go.Scatter(x=filtered_df['Date'].tail(90), y=filtered_df['Price'].tail(90), name="History"))
         fig_pred.add_trace(go.Scatter(x=future_dates, y=forecast, name="AI Prediction", line=dict(color='red', width=3, dash='dot')))
         
         st.plotly_chart(fig_pred, use_container_width=True)
-        st.success(f"AI Target: approx {forecast[-1]:.2f} PKR by {future_dates[-1].strftime('%d %B %Y')}")
+        st.success(f"AI Target: approx {forecast[-1]:.2f} PKR")
 
     with tab3:
         st.dataframe(filtered_df.sort_values(by='Date', ascending=False), use_container_width=True)
